@@ -12,6 +12,7 @@ var Schedule = require('./models/schedule');
 var Availability = require('./models/availability');
 var Candidate = require('./models/candidate');
 var Comment = require('./models/comment');
+
 User.sync().then(() => {
   Schedule.belongsTo(User, { foreignKey: 'createdBy' });
   Schedule.sync();
@@ -23,6 +24,13 @@ User.sync().then(() => {
     Availability.sync();
   });
 });
+
+var config = require('./config');
+
+var TwitterStrategy = require('passport-twitter').Strategy;
+var TWITTER_CONSUMER_KEY = config.twitter.consumerKey;
+var TWITTER_CONSUMER_SECRET = config.twitter.consumerSecret;
+var TWITTER_CALLBACKURL = config.twitter.callbackURL;
 
 var GitHubStrategy = require('passport-github2').Strategy;
 var GITHUB_CLIENT_ID = '2f831cb3d4aac02393aa';
@@ -36,6 +44,21 @@ passport.deserializeUser(function (obj, done) {
   done(null, obj);
 });
 
+passport.use(new TwitterStrategy({
+  consumerKey: TWITTER_CONSUMER_KEY,
+  consumerSecret: TWITTER_CONSUMER_SECRET,
+  callbackURL: TWITTER_CALLBACKURL
+},
+  function (accessToken, refreshToken, profile, done) {
+      User.upsert({
+        userId: profile.id,
+        provider: profile.provider,
+        username: profile.username,
+      }).then(() => {
+        done(null, profile);
+      });
+  }
+));
 
 passport.use(new GitHubStrategy({
   clientID: GITHUB_CLIENT_ID,
@@ -46,6 +69,7 @@ passport.use(new GitHubStrategy({
     process.nextTick(function () {
       User.upsert({
         userId: profile.id,
+        provider: profile.provider,
         username: profile.username
       }).then(() => {
         done(null, profile);
@@ -81,13 +105,13 @@ app.use('/login', loginRouter);
 app.use('/logout', logoutRouter);
 app.use('/schedules', schedulesRouter);
 
-app.get('/auth/github',
-  passport.authenticate('github', { scope: ['user:email'] }),
+app.get('/auth/twitter',
+  passport.authenticate('twitter', { scope: ['user:email'] }),
   function (req, res) {
   });
 
-app.get('/auth/github/callback',
-  passport.authenticate('github', { failureRedirect: '/login' }),
+app.get('/auth/twitter/callback',
+  passport.authenticate('twitter', { failureRedirect: '/login' }),
   function (req, res) {
     res.redirect('/');
   });

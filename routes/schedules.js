@@ -19,6 +19,7 @@ router.post('/', authenticationEnsurer, (req, res, next) => {
     scheduleName: req.body.scheduleName.slice(0, 255) || '（名称未設定）',
     memo: req.body.memo,
     createdBy: req.user.id,
+    provider: req.user.provider,
     updatedAt: updatedAt
   }).then((schedule) => {
     const candidateNames = req.body.candidates.trim().split('\n').map((s) => s.trim()).filter((s) => s !== "");
@@ -39,7 +40,7 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
     include: [
       {
         model: User,
-        attributes: ['userId', 'username']
+        attributes: ['userId','provider','username']
       }],
     where: {
       scheduleId: req.params.scheduleId

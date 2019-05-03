@@ -21,7 +21,7 @@ describe('/login', () => {
     request(app)
       .get('/login')
       .expect('Content-Type', 'text/html; charset=utf-8')
-      .expect(/<a href="\/auth\/github"/)
+      .expect(/<a href="\/auth\/twitter"/)
       .expect(200, done);
   });
 
@@ -45,7 +45,7 @@ describe('/logout', () => {
 describe('/schedules', () => {
   before(() => {
     passportStub.install(app);
-    passportStub.login({ id: 0, username: 'testuser' });
+    passportStub.login({ id: '0',provider: 'test', username: 'testuser' });
   });
 
   after(() => {
@@ -54,7 +54,7 @@ describe('/schedules', () => {
   });
 
   it('予定が作成でき、表示される', (done) => {
-    User.upsert({ userId: 0, username: 'testuser' }).then(() => {
+    User.upsert({ userId: '0',provider: 'test', username: 'testuser' }).then(() => {
       request(app)
         .post('/schedules')
         .send({ scheduleName: 'テスト予定1', memo: 'テストメモ1\r\nテストメモ2', candidates: 'テスト候補1\r\nテスト候補2\r\nテスト候補3' })
@@ -64,7 +64,12 @@ describe('/schedules', () => {
           let createdSchedulePath = res.headers.location;
           request(app)
             .get(createdSchedulePath)
-            // TODO 作成された予定と候補が表示されていることをテストする
+            .expect(/テスト予定1/)
+            .expect(/テストメモ1/)
+            .expect(/テストメモ2/)
+            .expect(/テスト候補1/)
+            .expect(/テスト候補2/)
+            .expect(/テスト候補3/)
             .expect(200)
             .end((err, res) => {
               if (err) return done(err);
